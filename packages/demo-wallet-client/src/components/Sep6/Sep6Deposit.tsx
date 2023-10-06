@@ -19,7 +19,7 @@ import {
 } from "ducks/sep6DepositAsset";
 import { useRedux } from "hooks/useRedux";
 import { AppDispatch } from "config/store";
-import { ActionStatus } from "types/types";
+import { ActionStatus, TransactionStatus } from "types/types";
 
 export const Sep6Deposit = () => {
   const { sep6DepositAsset } = useRedux("sep6DepositAsset");
@@ -156,7 +156,10 @@ export const Sep6Deposit = () => {
     return `Min: ${minAmount} | Max: ${maxAmount}`;
   };
 
-  if (sep6DepositAsset.status === ActionStatus.NEEDS_INPUT) {
+  if (
+    sep6DepositAsset.status === ActionStatus.NEEDS_INPUT &&
+    sep6DepositAsset.data.currentStatus === ""
+  ) {
     return (
       <Modal visible onClose={handleClose} parentId={CSS_MODAL_PARENT_ID}>
         <Modal.Heading>SEP-6 Deposit Info</Modal.Heading>
@@ -280,6 +283,20 @@ export const Sep6Deposit = () => {
         </Modal.Footer>
       </Modal>
     );
+  }
+
+  if (sep6DepositAsset.status === ActionStatus.NEEDS_INPUT && sep6DepositAsset.data.currentStatus === TransactionStatus.PENDING_CUSTOMER_INFO_UPDATE) {
+    return (
+      <Modal visible onClose={handleClose} parentId={CSS_MODAL_PARENT_ID}>
+        <Modal.Heading>SEP-12 Customer Info Update</Modal.Heading>
+        <Modal.Body>
+          <p>Some body</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button onClick={handleClose}>Close</Button>
+          </Modal.Footer>
+      </Modal>
+    )
   }
 
   if (sep6DepositAsset.status === ActionStatus.CAN_PROCEED) {

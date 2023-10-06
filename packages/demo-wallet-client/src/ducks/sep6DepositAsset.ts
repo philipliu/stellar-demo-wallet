@@ -8,7 +8,7 @@ import { normalizeHomeDomainUrl } from "demo-wallet-shared/build/helpers/normali
 import { log } from "demo-wallet-shared/build/helpers/log";
 import { checkDepositWithdrawInfo } from "demo-wallet-shared/build/methods/checkDepositWithdrawInfo";
 import {
-  pollDepositUntilComplete,
+  pollDepositUntil,
   programmaticDepositFlow,
 } from "demo-wallet-shared/build/methods/sep6";
 import {
@@ -31,6 +31,7 @@ import {
   TomlFields,
   AnchorActionType,
   AnyObject,
+  TransactionStatus,
 } from "types/types";
 
 type InitiateDepositActionPayload = Sep6DepositAssetInitialState["data"] & {
@@ -284,20 +285,40 @@ export const sep6DepositAction = createAsyncThunk<
         return assetString;
       };
 
+      let actionNeededStatuses = [
+        TransactionStatus.PENDING_CUSTOMER_INFO_UPDATE,
+      ];
+      let endStatuses = [
+        TransactionStatus.PENDING_EXTERNAL,
+        TransactionStatus.COMPLETED,
+        TransactionStatus.ERROR,
+      ];
+
       // Poll transaction until complete
       const { currentStatus = "", trustedAssetAdded = "" } =
-        await pollDepositUntilComplete({
+        await pollDepositUntil({
           transactionId: depositResponse.id || "",
           token,
           transferServerUrl,
           trustAssetCallback,
+          statuses: [...endStatuses, ...actionNeededStatuses],
         });
 
-      return {
-        currentStatus,
-        status: ActionStatus.SUCCESS,
-        trustedAssetAdded,
-      };
+      if (
+        endStatuses.map((status) => status.toString()).includes(currentStatus)
+      ) {
+        return {
+          currentStatus,
+          status: ActionStatus.SUCCESS,
+          trustedAssetAdded,
+        };
+      } else {
+        return {
+          currentStatus,
+          status: ActionStatus.NEEDS_INPUT,
+          trustedAssetAdded,
+        }
+      }
     } catch (error) {
       const errorMessage = getErrorMessage(error);
 
